@@ -1,6 +1,11 @@
 import datetime
-import json
 import eml_parser
+import requests
+from colorama import init, Fore
+
+init(autoreset=True)
+API_KEY = ""
+
 
 def json_serial(obj):
   if isinstance(obj, datetime.datetime):
@@ -13,8 +18,6 @@ with open('mail.eml', 'rb') as fhdl:
 ep = eml_parser.EmlParser()
 
 parsed_eml = ep.decode_email_bytes(raw_email)
-
-hash = []
 #print(json.dumps(parsed_eml["header"], default=json_serial, indent=2))
 
 for p in parsed_eml["header"]:
@@ -23,32 +26,46 @@ for p in parsed_eml["header"]:
 
 print( "\n\n--- Attachement ---" )
 for i in parsed_eml["attachment"]:
-  print( "\n\tfilename ->", i["filename"] )
+  print( "\nfilename ->", i["filename"] )
 
+  
+  print("---- Verify hash ----")
   for s in i["hash"].keys():
-    print( s, "->", i["hash"][s] )
-    hash.append(i["hash"][s])
+    #hash.append(i["hash"][s])
 
+    url = f'https://api.metadefender.com/v4/hash/{i["hash"][s]}'
+    headers = {
+      "apikey" : API_KEY
+    }
+    response = requests.get(url, headers=headers)
 
-
-print("\n\n\n------- VERIFIE HASH -------")
-API_KEY = ''
-
-import requests
-
-for h in hash:
-  print("\n----------------------------")
-  url = f'https://api.metadefender.com/v4/hash/{h}'
-  headers = {
-    "apikey" : API_KEY
-  }
-  response = requests.get(url, headers=headers)
-
-  if response.status_code == 200:
-    data = response.json()
-    if 'scan_results_i' in data and data['scan_results_i']['scan_all_result_a'] == 'clean':
-      print(f"Metadefender: Hash {hash} is clean.")
+    if response.status_code == 200:
+      data = response.json()
+      if 'scan_results_i' in data and data['scan_results_i']['scan_all_result_a'] == 'clean':
+        print(f" {s} [ {Fore.GREEN}Clean{Fore.RESET} ]")
+      else:
+        print(f" {s} [ {Fore.RED}Detected as malicious{Fore.RESET} ]")
     else:
-      print(f"Metadefender: Hash {hash} is detected as malicious.")
+        print(f" {s} [ {Fore.BLUE}Not found, unknow{Fore.RESET} ]")
+
+
+
+print(f"\n\n{Fore.YELLOW}---- START TEST FOR MALICIOUS ----{Fore.RESET}\n")
+bob = "49fe4735e75193274cde5a90dca8d507"
+
+url = f'https://api.metadefender.com/v4/hash/{bob}'
+headers = {
+  "apikey" : API_KEY
+}
+response = requests.get(url, headers=headers)
+
+if response.status_code == 200:
+  data = response.json()
+  if 'scan_results_i' in data and data['scan_results_i']['scan_all_result_a'] == 'clean':
+    print(f" {bob} [ {Fore.GREEN}Clean{Fore.RESET} ]") 
   else:
-      print("Error querying Metadefender API:", response.status_code)
+    print(f" {bob} [ {Fore.RED}Detected as malicious{Fore.RESET} ]")
+else:
+    print(f" {bob} [ {Fore.BLUE}Not found, unknow{Fore.RESET} ]")
+
+print(f"\n\n{Fore.YELLOW}---- END TEST FOR MALICIOUS ----{Fore.RESET}\n")

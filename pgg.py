@@ -12,6 +12,10 @@ def json_serial(obj):
       serial = obj.isoformat()
       return serial
 
+
+
+###### GESTION DES ERREURS FICHIERS ######
+
 with open('mail.eml', 'rb') as fhdl:
   raw_email = fhdl.read()
 
@@ -32,6 +36,13 @@ for i in parsed_eml["attachment"]:
   print("---- Verify hash ----")
   for s in i["hash"].keys():
     #hash.append(i["hash"][s])
+
+
+
+
+###### GESTION DES ERREURS API ######
+# faire un singleton pour les 
+# connexions de l'API
 
     url = f'https://api.metadefender.com/v4/hash/{i["hash"][s]}'
     headers = {
